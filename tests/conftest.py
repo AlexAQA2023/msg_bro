@@ -1,5 +1,4 @@
 import pytest
-from kafka import KafkaProducer
 
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
