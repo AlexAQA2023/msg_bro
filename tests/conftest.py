@@ -1,3 +1,5 @@
+from typing import Any, Generator
+
 import pytest
 
 from framework.internal.http.account import AccountApi
@@ -16,6 +18,6 @@ def email() -> MailApi:
 
 
 @pytest.fixture(scope='session')
-def kafka_producer() -> Producer:
+def kafka_producer() -> Generator[Producer | Any, Any, None]:
     with Producer() as producer:
         yield producer
