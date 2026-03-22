@@ -15,7 +15,8 @@ class AccountApi:
         return response
 
     def activate_user(self, token: str) -> httpx.Response:
-        data = {"token": token}
-        response = self._client.post("/activate/user/async-activate", json=data)
+        params = {"token": token}
+        headers = {"accept": "application/json"}
+        response = self._client.put("/register/user/activate", params=params, headers=headers)
         print(response.content)
         return response
