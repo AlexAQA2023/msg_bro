@@ -45,3 +45,37 @@ def test_successful_registration_with_kafka_producer(email: MailApi, kafka_produ
         time.sleep(1)
     else:
         raise AssertionError("Email not found")
+
+
+def generate_error_message():
+    return {
+        "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+        "title": "Validation failed",
+        "status": 400,
+        "traceId": uuid.uuid4().hex,  # уникальный traceId
+        "errors": {
+            "Email": ["Invalid"]
+        }
+    }
+
+
+def test_register_events_error_consumer(email: MailApi, kafka_producer: Producer) -> None:
+     base = uuid.uuid4().hex
+     input_data = {
+         "login": base,
+         "email": f"{base}@mail.ru",
+         "password": "123123123"
+     }
+     message = {
+         "input_data": input_data,
+         "error_message": generate_error_message(),
+         "error_type": "unknown"
+     }
+     kafka_producer.send('register-events-errors', message)
+     for _ in range(10):
+         response = email.find_message(query=base)
+         if response.json().get("total", 0) > 0:
+             break
+         time.sleep(1)
+     else:
+         raise AssertionError(f"Email to '{input_data['email']}' not found after waiting")
