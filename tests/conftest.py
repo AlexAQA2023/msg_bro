@@ -1,3 +1,4 @@
+import uuid
 from typing import Any, Generator
 
 import pytest
@@ -21,3 +22,12 @@ def email() -> MailApi:
 def kafka_producer() -> Generator[Producer | Any, Any, None]:
     with Producer() as producer:
         yield producer
+
+@pytest.fixture
+def user_data() -> dict:
+    base = uuid.uuid4().hex
+    return {
+        "login": base,
+        "email": f"{base}@mail.ru",
+        "password": "123123"
+    }

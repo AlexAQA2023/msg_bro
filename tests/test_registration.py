@@ -1,11 +1,9 @@
-import json
 import time
 import uuid
-from urllib.parse import urlparse
-
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
 from framework.internal.kafka.producer import Producer
+from framework.internal.utils.utils import extract_token_from_email_body
 
 
 def test_failed_registration(account: AccountApi, email: MailApi) -> None:
@@ -50,41 +48,39 @@ def test_successful_registration_with_kafka_producer(email: MailApi, kafka_produ
         raise AssertionError("Email not found")
 
 
-def generate_error_message():
-    return {
-        "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-        "title": "Validation failed",
-        "status": 400,
-        "traceId": uuid.uuid4().hex,  # уникальный traceId
-        "errors": {
-            "Email": ["Invalid"]
-        }
+def test_register_events_error_consumer_with_kafka(user_data: dict, email: MailApi, kafka_producer: Producer) -> None:
+    error_event = {
+        "input_data": {
+            "login": user_data["login"],
+            "email": user_data["email"],
+            "password": user_data["password"]
+        },
+        "error_message": "Registration error example",
+        "error_type": "registration_error"
     }
-def extract_token_from_email_body(body: str) -> str:
-    # Парсим JSON из строки body
-    data = json.loads(body)
-    confirmation_url = data.get("ConfirmationLinkUrl", "")
-    # Разбираем URL
-    path = urlparse(confirmation_url).path  # например: /activate/49b68497-c0cb-44e0-81aa-c8e8ffc85e62
-    token = path.rsplit('/', 1)[-1]  # берём последнюю часть пути после последнего слеша
-    return token
 
-def activate_user(self, token: str):
-    url = "http://185.185.143.231:8085/register/user/activate"
-    params = {"token": token}
-    return self.session.put(url, params=params, headers={"accept": "application/json"})
+    kafka_producer.send('register-events-errors', error_event)
+    base = user_data["login"]
 
-def test_register_events_error_consumer(email: MailApi, kafka_producer: Producer, account: AccountApi) -> None:
-    base = uuid.uuid4().hex
-    user_email = f"{base}@mail.ru"
-    login = base
-    password = "123123"
+    for _ in range(10):
+        response = email.find_message(query=base)
+        if response.json().get("total", 0) > 0:
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError(f"Email to '{error_event['email']}' not found after waiting")
 
-    # Шаг 1: Регистрируем пользователя
-    resp = account.register_user(login=login, password=password, email=user_email)
-    assert resp.status_code == 201
+def test_activate_registered_user_by_email_token(user_data: dict, email: MailApi, kafka_producer: Producer,
+                                                 account: AccountApi) -> None:
+    unique_user_data = account.register_user(
+        login=user_data["login"],
+        password=user_data["password"],
+        email=user_data["email"]
+    )
+    assert unique_user_data.status_code == 201
 
-    # Шаг 2: Ждём письмо с подтверждением
+    base = user_data["login"]
+
     message = None
     for _ in range(15):
         response = email.find_message(query=base)
@@ -94,13 +90,10 @@ def test_register_events_error_consumer(email: MailApi, kafka_producer: Producer
             break
         time.sleep(1)
     else:
-        raise AssertionError("Письмо с подтверждением не найдено")
+        raise AssertionError("Confirmation link not found")
 
-    # Шаг 3: Извлекаем token из тела письма
     body = message["Content"]["Body"]
     token = extract_token_from_email_body(body)
-    print(token)
 
-    # Далее можно использовать token для активации
     activation_resp = account.activate_user(token)
     assert activation_resp.status_code == 200

@@ -44,14 +44,3 @@ class MailApi:
             if search_text in body:
                 return message
         return None
-
-    def extract_token_from_message(self, message: dict) -> str | None:
-        try:
-            body = message.get("Content", {}).get("Body", "")
-            body_json = json.loads(body)
-            url = body_json.get("ConfirmationLinkUrl", "")
-            path = urlparse(url).path
-            token = path.rsplit("/", 1)[-1]
-            return token
-        except Exception:
-            return None
