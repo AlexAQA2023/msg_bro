@@ -23,6 +23,7 @@ def kafka_producer() -> Generator[Producer | Any, Any, None]:
     with Producer() as producer:
         yield producer
 
+
 @pytest.fixture
 def user_data() -> dict:
     base = uuid.uuid4().hex
@@ -31,17 +32,3 @@ def user_data() -> dict:
         "email": f"{base}@mail.ru",
         "password": "123123"
     }
-import pytest
-
-@pytest.fixture
-def get_user_status():
-    def _get_user_status(login: str) -> str:
-        api_client = AccountApi()
-        response = api_client.client.get(f"/users/{login}")
-
-        if response.status_code != 200:
-            return "unknown"
-
-        user_data = response.json()
-        return user_data.get("status", "unknown")
-    return _get_user_status

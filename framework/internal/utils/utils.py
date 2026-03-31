@@ -13,10 +13,3 @@ def generate_error_message():
             "Email": ["Invalid"]
         }
     }
-
-def extract_token_from_email_body(body: str) -> str:
-    data = json.loads(body)
-    confirmation_url = data.get("ConfirmationLinkUrl", "")
-    path = urlparse(confirmation_url).path
-    token = path.rsplit('/', 1)[-1]
-    return token

@@ -1,10 +1,9 @@
-import json
 import time
 import uuid
+from framework.internal.email_helper.email_helper import EmailHelper
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
 from framework.internal.kafka.producer import Producer
-from framework.internal.utils.utils import extract_token_from_email_body
 
 
 def test_failed_registration(account: AccountApi, email: MailApi) -> None:
@@ -49,10 +48,10 @@ def test_successful_registration_with_kafka_producer(email: MailApi, kafka_produ
         raise AssertionError("Email not found")
 
 
-def test_register_events_error_consumer_with_kafka_2(user_data: dict, email: MailApi, kafka_producer: Producer,
-                                                     account: AccountApi,
-                                                     get_user_status
-                                                     ) -> None:
+def test_register_events_error_consumer_with_kafka(user_data: dict, email: MailApi, kafka_producer: Producer,
+                                                   account: AccountApi
+
+                                                   ) -> None:
     login = user_data["login"]
     email_address = user_data["email"]
 
@@ -79,7 +78,7 @@ def test_register_events_error_consumer_with_kafka_2(user_data: dict, email: Mai
         raise AssertionError(f"Email to '{email_address}' not found after waiting")
 
     body = message["Content"]["Body"]
-    token = extract_token_from_email_body(body)
+    token = EmailHelper.extract_confirmation_token(body)
     assert token is not None, "Token wasn't found in email body"
 
     activation_response = account.activate_user(token)
@@ -109,7 +108,7 @@ def test_activate_registered_user_by_email_token(user_data: dict, email: MailApi
         raise AssertionError("Confirmation link not found")
 
     body = message["Content"]["Body"]
-    token = extract_token_from_email_body(body)
+    token = EmailHelper.extract_confirmation_token(body)
 
     activation_resp = account.activate_user(token)
     assert activation_resp.status_code == 200

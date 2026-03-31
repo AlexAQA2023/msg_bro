@@ -20,7 +20,3 @@ class AccountApi:
         response = self._client.put("/register/user/activate", params=params, headers=headers)
         print(response.content)
         return response
-
-    @property
-    def client(self):
-        return self._client
