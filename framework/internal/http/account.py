@@ -1,15 +1,22 @@
 import httpx
 
-asd = '"https://account.broker.yandex.ru/api/v1"'
-class AccountApi:
-    def __init__(self, base_url ="http://185.185.143.231:8085") -> None:
-        self._base_url = base_url
-        self._client =httpx.Client(base_url=self._base_url)
 
-    def register_user(self, login:str, password:str,email:str) -> httpx.Response:
-        data={"login":login,
-              "password":password,
-              "email":email}
-        response =  self._client.post("/register/user/async-register",json=data)
+class AccountApi:
+    def __init__(self, base_url="http://185.185.143.231:8085") -> None:
+        self._base_url = base_url
+        self._client = httpx.Client(base_url=self._base_url)
+
+    def register_user(self, login: str, password: str, email: str) -> httpx.Response:
+        data = {"login": login,
+                "password": password,
+                "email": email}
+        response = self._client.post("/register/user/async-register", json=data)
+        print(response.content)
+        return response
+
+    def activate_user(self, token: str) -> httpx.Response:
+        params = {"token": token}
+        headers = {"accept": "application/json"}
+        response = self._client.put("/register/user/activate", params=params, headers=headers)
         print(response.content)
         return response
