@@ -31,7 +31,7 @@ class Consumer():
         self._thread = threading.Thread(target=self._consume, daemon=True)
         self._thread.start()
 
-        if not self._ready.wait(timeout=10):
+        if not self._ready.wait(timeout=90):
             raise RuntimeError("Timeout waiting for consumer")
 
     def _consume(self):

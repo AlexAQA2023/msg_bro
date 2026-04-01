@@ -52,6 +52,7 @@ def test_successful_registration_with_kafka_producer(email: MailApi, kafka_produ
 
 def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Producer,
                                                               kafka_consumer: Consumer) -> None:
+    time.sleep(2)
     base = uuid.uuid4().hex
     message = {
         "login": base,
