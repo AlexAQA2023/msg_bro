@@ -1,6 +1,9 @@
 import json
+import os
 import threading
 import queue
+import uuid
+
 from kafka import KafkaConsumer
 
 
@@ -19,8 +22,10 @@ class Consumer():
             self._topic,
             bootstrap_servers=self._bootstrap_servers,
             auto_offset_reset='latest',
+            group_id=f'test-group-{uuid.uuid4()}',
             value_deserializer=lambda x: json.loads(x.decode('utf-8')),
         )
+        self._consumer.poll(timeout_ms=100)
         self._running.set()
         self._ready.clear()
         self._thread = threading.Thread(target=self._consume, daemon=True)
@@ -44,7 +49,7 @@ class Consumer():
             print(f"Error: {e}")
 
 
-    def get_message(self, timeout=90):
+    def get_message(self, timeout=10):
         try:
             return self._messages.get(timeout=timeout)
         except queue.Empty:
