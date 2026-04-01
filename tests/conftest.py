@@ -1,7 +1,4 @@
-from typing import Generator
-
 import pytest
-
 from framework.internal.kafka.consumer import Consumer
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi

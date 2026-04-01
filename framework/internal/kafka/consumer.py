@@ -37,7 +37,7 @@ class Consumer():
                 messages = self._consumer.poll(timeout_ms=1000, max_records=10)
                 for topic_partition, records in messages.items():
                     for record in records:
-                        print(record)
+                        print(f"{topic_partition}: {record}")
                         self._messages.put(record)
             print( "consuming")
         except Exception as e:
