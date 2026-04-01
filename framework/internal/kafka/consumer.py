@@ -47,7 +47,7 @@ class Consumer():
     def get_message(self, timeout=90):
         try:
             return self._messages.get(timeout=timeout)
-        except queue.Queue:
+        except queue.Empty:
             raise AssertionError("Queue is empty")
 
 
