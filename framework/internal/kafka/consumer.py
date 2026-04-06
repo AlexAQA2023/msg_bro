@@ -1,7 +1,6 @@
 import json
 import threading
 import time
-import uuid
 from collections import defaultdict
 
 from kafka import KafkaConsumer
