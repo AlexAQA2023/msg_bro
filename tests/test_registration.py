@@ -1,11 +1,11 @@
-import json
 import time
 import uuid
+
+from framework.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
 from framework.internal.kafka.consumer import Consumer
 from framework.internal.kafka.producer import Producer
-from kafka import KafkaConsumer
 
 
 def test_failed_registration(account: AccountApi, email: MailApi) -> None:
@@ -51,7 +51,7 @@ def test_successful_registration_with_kafka_producer(email: MailApi, kafka_produ
 
 
 def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Producer,
-                                                              kafka_consumer: Consumer) -> None:
+                                                              register_events_subscriber: RegisterEventsSubscriber) -> None:
     time.sleep(2)
     base = uuid.uuid4().hex
     message = {
@@ -62,10 +62,8 @@ def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Pr
 
     kafka_producer.send('register-events', message)
     for i in range(10):
-        message = kafka_consumer.get_message()
+        message = register_events_subscriber.get_message()
         if message.value["login"] == base:
-         break
+            break
     else:
         raise AssertionError("Email not found")
-
-

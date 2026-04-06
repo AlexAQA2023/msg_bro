@@ -1,4 +1,6 @@
 import pytest
+
+from framework.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from framework.internal.kafka.consumer import Consumer
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
@@ -20,8 +22,12 @@ def kafka_producer() -> Producer:
     with Producer() as producer:
         yield producer
 
-
 @pytest.fixture(scope='session')
-def kafka_consumer() -> Consumer:
-    with Consumer() as consumer:
+def register_events_subscriber() -> RegisterEventsSubscriber:
+    return RegisterEventsSubscriber()
+
+@pytest.fixture(scope='session',autouse=True)
+def kafka_consumer(register_events_subscriber: RegisterEventsSubscriber) -> Consumer:
+    with Consumer(subscribers=[register_events_subscriber]) as consumer:
         yield consumer
+
