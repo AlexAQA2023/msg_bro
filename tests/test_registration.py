@@ -110,19 +110,19 @@ def test_successful_registration_via_subscriber(register_events_subscriber: Regi
 
 
 def test_negative_registration_with_validation_type_error(register_events_subscriber: RegisterEventsSubscriber,
-                                                          register_register_events_errors: RegisterEventsErrorsSubscriber,
+                                                          register_events_errors: RegisterEventsErrorsSubscriber,
                                                           invalid_user_data,
                                                           account: AccountApi) -> None:
     login = invalid_user_data["login"]
     account.register_user(**invalid_user_data)
     register_events_subscriber.find_message(login=login)
-    register_register_events_errors.find_error_message(login=login, error_type="validation")
+    register_events_errors.find_error_message(login=login, error_type="validation")
 
 
 def test_negative_registration_with_unknown_type_error(
         kafka_producer: Producer,
         valid_user_data,
-        register_register_events_errors: RegisterEventsErrorsSubscriber
+        register_events_errors: RegisterEventsErrorsSubscriber
 ) -> None:
     login = valid_user_data["login"]
 
@@ -146,5 +146,5 @@ def test_negative_registration_with_unknown_type_error(
     kafka_producer.send('register-events-errors', message)
     print(f"DEBUG: Unknown error is pushed for login: {login}")
 
-    register_register_events_errors.find_error_message(login=login,error_type="unknown",timeout=20)
+    register_events_errors.find_error_message(login=login, error_type="unknown", timeout=20)
 
