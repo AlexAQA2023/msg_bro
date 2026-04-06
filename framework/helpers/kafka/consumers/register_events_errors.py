@@ -6,7 +6,7 @@ from framework.internal.kafka.subscriber import Subscriber
 class RegisterEventsErrorsSubscriber(Subscriber):
     topic: str = "register-events-errors"
 
-    def find_error_message(self, login: str, error_type: str = "validation", timeout: float = 20) -> dict:
+    def find_error_message(self, login: str, error_type: str, timeout: float = 20) -> dict:
         start_time = time.time()
         print(f"DEBUG: Searching for login {login} in {self.topic}...")
 

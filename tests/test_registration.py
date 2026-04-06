@@ -28,6 +28,15 @@ def invalid_user_data() -> dict[str, str]:
     }
 
 
+@pytest.fixture
+def already_taken_user_data() -> dict[str, str]:
+    return {
+        "login": "test_user_string",
+        "email": "test_user_string@gmail.com",
+        "password": "string",
+    }
+
+
 def test_failed_registration(account: AccountApi, email: MailApi) -> None:
     expected_mail = "string@mail.ru"
     account.register_user(login="string", password="string", email="string")
@@ -100,11 +109,42 @@ def test_successful_registration_via_subscriber(register_events_subscriber: Regi
         raise AssertionError("Email not found")
 
 
-def test_negative_registration_via_subscriber(register_events_subscriber: RegisterEventsSubscriber,
-                                              register_register_events_errors: RegisterEventsErrorsSubscriber,
-                                              invalid_user_data,
-                                              account: AccountApi) -> None:
+def test_negative_registration_with_validation_type_error(register_events_subscriber: RegisterEventsSubscriber,
+                                                          register_register_events_errors: RegisterEventsErrorsSubscriber,
+                                                          invalid_user_data,
+                                                          account: AccountApi) -> None:
     login = invalid_user_data["login"]
     account.register_user(**invalid_user_data)
     register_events_subscriber.find_message(login=login)
-    register_register_events_errors.find_error_message(login=login)
+    register_register_events_errors.find_error_message(login=login, error_type="validation")
+
+
+def test_negative_registration_with_unknown_type_error(
+        kafka_producer: Producer,
+        valid_user_data,
+        register_register_events_errors: RegisterEventsErrorsSubscriber
+) -> None:
+    login = valid_user_data["login"]
+
+    message = {
+        "input_data": {
+            "login": login,
+            "email": f"{login}@gmail.com",
+            "password": "string"
+        },
+        "error_message": {
+            "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+            "title": "Validation failed",
+            "status": 400,
+            "errors": {
+                "Email": ["Taken"]
+            }
+        },
+        "error_type": "unknown"
+    }
+
+    kafka_producer.send('register-events-errors', message)
+    print(f"DEBUG: Unknown error is pushed for login: {login}")
+
+    register_register_events_errors.find_error_message(login=login,error_type="unknown",timeout=20)
+
