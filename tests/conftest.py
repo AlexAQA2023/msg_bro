@@ -1,6 +1,7 @@
 import pytest
 
 from framework.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
+from framework.helpers.kafka.consumers.register_events_errors import RegisterEventsErrorsSubscriber
 from framework.internal.kafka.consumer import Consumer
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
@@ -25,6 +26,10 @@ def kafka_producer() -> Producer:
 @pytest.fixture(scope='session')
 def register_events_subscriber() -> RegisterEventsSubscriber:
     return RegisterEventsSubscriber()
+
+@pytest.fixture(scope='session')
+def register_register_events_errors() -> RegisterEventsErrorsSubscriber:
+    return RegisterEventsErrorsSubscriber()
 
 @pytest.fixture(scope='session',autouse=True)
 def kafka_consumer(register_events_subscriber: RegisterEventsSubscriber) -> Consumer:

@@ -2,18 +2,29 @@ import time
 import uuid
 import pytest
 from framework.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
+from framework.helpers.kafka.consumers.register_events_errors import RegisterEventsErrorsSubscriber
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
 from framework.internal.kafka.producer import Producer
 
 
 @pytest.fixture
-def register_message() -> dict[str, str]:
+def valid_user_data() -> dict[str, str]:
     base = uuid.uuid4().hex
     return {
         "login": base,
         "email": f"{base}@email.ru",
         "password": "123123",
+    }
+
+
+@pytest.fixture
+def invalid_user_data() -> dict[str, str]:
+    base = uuid.uuid4().hex
+    return {
+        "login": base,
+        "email": f"{base}@email.ru",
+        "password": "1",
     }
 
 
@@ -74,10 +85,10 @@ def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Pr
 
 
 def test_successful_registration_via_subscriber(register_events_subscriber: RegisterEventsSubscriber,
-                                                register_message: dict[str, str],
+                                                valid_user_data,
                                                 account: AccountApi, email: MailApi) -> None:
-    login = register_message["login"]
-    account.register_user(**register_message)
+    login = valid_user_data["login"]
+    account.register_user(**valid_user_data)
     register_events_subscriber.find_message(login=login)
 
     for _ in range(10):
@@ -87,3 +98,13 @@ def test_successful_registration_via_subscriber(register_events_subscriber: Regi
         time.sleep(1)
     else:
         raise AssertionError("Email not found")
+
+
+def test_negative_registration_via_subscriber(register_events_subscriber: RegisterEventsSubscriber,
+                                              register_register_events_errors: RegisterEventsErrorsSubscriber,
+                                              invalid_user_data,
+                                              account: AccountApi) -> None:
+    login = invalid_user_data["login"]
+    account.register_user(**invalid_user_data)
+    register_events_subscriber.find_message(login=login)
+    register_register_events_errors.find_error_message(login=login)
