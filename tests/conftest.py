@@ -36,7 +36,6 @@ def kafka_consumer(
     register_events_subscriber: RegisterEventsSubscriber,
         register_events_errors: RegisterEventsErrorsSubscriber  # Добавили сюда
 ) -> Consumer:
-    # Теперь передаем ОБА сабскрайбера в список
     with Consumer(subscribers=[
         register_events_subscriber,
         register_events_errors
