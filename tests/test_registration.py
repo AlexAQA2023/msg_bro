@@ -1,11 +1,20 @@
-import json
 import time
 import uuid
+import pytest
+from framework.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
-from framework.internal.kafka.consumer import Consumer
 from framework.internal.kafka.producer import Producer
-from kafka import KafkaConsumer
+
+
+@pytest.fixture
+def register_message() -> dict[str, str]:
+    base = uuid.uuid4().hex
+    return {
+        "login": base,
+        "email": f"{base}@email.ru",
+        "password": "123123",
+    }
 
 
 def test_failed_registration(account: AccountApi, email: MailApi) -> None:
@@ -51,7 +60,7 @@ def test_successful_registration_with_kafka_producer(email: MailApi, kafka_produ
 
 
 def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Producer,
-                                                              kafka_consumer: Consumer) -> None:
+                                                              register_events_subscriber: RegisterEventsSubscriber) -> None:
     time.sleep(2)
     base = uuid.uuid4().hex
     message = {
@@ -61,11 +70,20 @@ def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Pr
     }
 
     kafka_producer.send('register-events', message)
-    for i in range(10):
-        message = kafka_consumer.get_message()
-        if message.value["login"] == base:
-         break
+    register_events_subscriber.find_message(login=base)
+
+
+def test_successful_registration_via_subscriber(register_events_subscriber: RegisterEventsSubscriber,
+                                                register_message: dict[str, str],
+                                                account: AccountApi, email: MailApi) -> None:
+    login = register_message["login"]
+    account.register_user(**register_message)
+    register_events_subscriber.find_message(login=login)
+
+    for _ in range(10):
+        response = email.find_message(query=login)
+        if response.json()["total"] > 0:
+            break
+        time.sleep(1)
     else:
         raise AssertionError("Email not found")
-
-
