@@ -1,11 +1,8 @@
 import json
-import os
 import threading
-import queue
 import time
 import uuid
 from collections import defaultdict
-from xmlrpc.client import FastParser
 
 from kafka import KafkaConsumer
 
@@ -16,9 +13,10 @@ from framework.internal.singleton import Singleton
 class Consumer(Singleton):
     _started = False
 
-    def __init__(self, subscribers: list[Subscriber], bootstrap_servers=['185.185.143.231:9092']):
+    def __init__(self, subscribers: list[Subscriber], consumer_group: str = 'python_art_group', bootstrap_servers=['185.185.143.231:9092']):
         self._bootstrap_servers = bootstrap_servers
         self._subscribers = subscribers
+        self.consumer_group = consumer_group
         self._consumer: KafkaConsumer | None = None
         self._running = threading.Event()
         self._ready = threading.Event()
@@ -38,8 +36,9 @@ class Consumer(Singleton):
             *self._watchers.keys(),
             bootstrap_servers=self._bootstrap_servers,
             auto_offset_reset='latest',
-            group_id=f'test-group-{uuid.uuid4()}',
+            group_id=self.consumer_group,
             value_deserializer=lambda x: json.loads(x.decode('utf-8')),
+
         )
         self._consumer.poll(timeout_ms=100)
         self._running.set()
@@ -114,7 +113,10 @@ class Consumer(Singleton):
                     for record in records:
                         for watcher in self._watchers[topic]:
                             print(f' {topic}: {record}')
-                            watcher.handle_message(record)
+                            try:
+                              watcher.handle_message(record)
+                            except Exception:
+                                print(f' Error while handling message: {record}, watcher {watcher.topic}')
                     time.sleep(0.1)
                 if not messages:
                     time.sleep(0.1)

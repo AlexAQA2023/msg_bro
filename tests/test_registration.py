@@ -61,9 +61,5 @@ def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Pr
     }
 
     kafka_producer.send('register-events', message)
-    for i in range(10):
-        message = register_events_subscriber.get_message()
-        if message.value["login"] == base:
-            break
-    else:
-        raise AssertionError("Email not found")
+    register_events_subscriber.find_message(login=base)
+

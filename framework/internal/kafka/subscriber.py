@@ -15,7 +15,7 @@ class Subscriber(ABC):
     def handle_message(self, record: ConsumerRecord) -> None:
         self._messages.put(record)
 
-    def get_message(self, timeout: int = 10):
+    def get_message(self, timeout: float = 10):
         try:
             return self._messages.get(timeout=timeout)
         except queue.Empty:
