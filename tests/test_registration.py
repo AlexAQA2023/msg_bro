@@ -1,21 +1,21 @@
 import time
 import uuid
-
 import pytest
-
 from framework.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
 from framework.internal.kafka.producer import Producer
 
+
 @pytest.fixture
 def register_message() -> dict[str, str]:
     base = uuid.uuid4().hex
-    return  {
-        "login":base,
+    return {
+        "login": base,
         "email": f"{base}@email.ru",
         "password": "123123",
     }
+
 
 def test_failed_registration(account: AccountApi, email: MailApi) -> None:
     expected_mail = "string@mail.ru"
@@ -34,21 +34,6 @@ def test_successful_registration(account: AccountApi, email: MailApi) -> None:
     email.find_message(query="string")
     for _ in range(10):
         response = email.find_message(query=base)
-        if response.json()["total"] > 0:
-            break
-        time.sleep(1)
-    else:
-        raise AssertionError("Email not found")
-
-
-def test_successful_registration_via_subscriber(register_events_subscriber: RegisterEventsSubscriber,register_message: dict[str, str],
-                                                account: AccountApi, email: MailApi) -> None:
-    login = register_message["login"]
-    account.register_user(**register_message)
-    register_events_subscriber.find_message(login=login)
-
-    for _ in range(10):
-        response = email.find_message(query=login)
         if response.json()["total"] > 0:
             break
         time.sleep(1)
@@ -86,3 +71,19 @@ def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Pr
 
     kafka_producer.send('register-events', message)
     register_events_subscriber.find_message(login=base)
+
+
+def test_successful_registration_via_subscriber(register_events_subscriber: RegisterEventsSubscriber,
+                                                register_message: dict[str, str],
+                                                account: AccountApi, email: MailApi) -> None:
+    login = register_message["login"]
+    account.register_user(**register_message)
+    register_events_subscriber.find_message(login=login)
+
+    for _ in range(10):
+        response = email.find_message(query=login)
+        if response.json()["total"] > 0:
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError("Email not found")
