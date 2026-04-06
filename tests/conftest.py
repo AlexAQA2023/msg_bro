@@ -31,8 +31,15 @@ def register_events_subscriber() -> RegisterEventsSubscriber:
 def register_register_events_errors() -> RegisterEventsErrorsSubscriber:
     return RegisterEventsErrorsSubscriber()
 
-@pytest.fixture(scope='session',autouse=True)
-def kafka_consumer(register_events_subscriber: RegisterEventsSubscriber) -> Consumer:
-    with Consumer(subscribers=[register_events_subscriber]) as consumer:
+@pytest.fixture(scope='session', autouse=True)
+def kafka_consumer(
+    register_events_subscriber: RegisterEventsSubscriber,
+    register_register_events_errors: RegisterEventsErrorsSubscriber # Добавили сюда
+) -> Consumer:
+    # Теперь передаем ОБА сабскрайбера в список
+    with Consumer(subscribers=[
+        register_events_subscriber,
+        register_register_events_errors
+    ]) as consumer:
         yield consumer
 
