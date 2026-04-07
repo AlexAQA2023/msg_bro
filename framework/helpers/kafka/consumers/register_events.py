@@ -8,6 +8,8 @@ class RegisterEventsSubscriber(Subscriber):
 
     def find_message(self, login: str, timeout: float = 10) -> None:
         start_time = time.time()
+        print(f"DEBUG: Searching for login {login} in {self.topic}...")
+
         while time.time() - start_time < timeout:
 
             message = self.get_message(timeout=timeout)
