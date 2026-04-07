@@ -20,20 +20,10 @@ def valid_user_data() -> dict[str, str]:
 
 @pytest.fixture
 def invalid_user_data() -> dict[str, str]:
-    base = uuid.uuid4().hex
     return {
-        "login": base,
-        "email": f"{base}@email.ru",
+        "login": "string",
+        "email": "string",
         "password": "1",
-    }
-
-
-@pytest.fixture
-def already_taken_user_data() -> dict[str, str]:
-    return {
-        "login": "test_user_string",
-        "email": "test_user_string@gmail.com",
-        "password": "string",
     }
 
 
@@ -81,7 +71,6 @@ def test_successful_registration_with_kafka_producer(email: MailApi, kafka_produ
 
 def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Producer,
                                                               register_events_subscriber: RegisterEventsSubscriber) -> None:
-    time.sleep(2)
     base = uuid.uuid4().hex
     message = {
         "login": base,
@@ -147,4 +136,3 @@ def test_negative_registration_with_unknown_type_error(
     print(f"DEBUG: Unknown error is pushed for login: {login}")
 
     register_events_errors.find_error_message(login=login, error_type="unknown", timeout=20)
-

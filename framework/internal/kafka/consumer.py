@@ -12,7 +12,8 @@ from framework.internal.singleton import Singleton
 class Consumer(Singleton):
     _started = False
 
-    def __init__(self, subscribers: list[Subscriber], consumer_group: str = 'python_art_group', bootstrap_servers=['185.185.143.231:9092']):
+    def __init__(self, subscribers: list[Subscriber], consumer_group: str = 'python_art_group',
+                 bootstrap_servers=['185.185.143.231:9092']):
         self._bootstrap_servers = bootstrap_servers
         self._subscribers = subscribers
         self.consumer_group = consumer_group
@@ -49,58 +50,6 @@ class Consumer(Singleton):
             raise RuntimeError("Consumer is not ready yet")
         self._started = True
 
-    # def start(self):
-    #     self._running.set()
-    #     self._ready.clear()
-    #     self._thread = threading.Thread(target=self._consume, daemon=True)
-    #     self._thread.start()
-    #
-    #     if not self._ready.wait(timeout=30):  # 30 секунд хватит даже для CI
-    #         self.stop()  # Очищаем ресурсы, если не взлетело
-    #         raise RuntimeError("Timeout waiting for consumers to initialize and assign partitions")
-
-    # def _consume(self):
-    #     import uuid
-    #     import json
-    #
-    #     print("Consumer thread starting...")
-    #     try:
-    #         # Создаем консьюмер прямо в этом потоке
-    #         self._consumer = KafkaConsumer(
-    #             self._topic,
-    #             bootstrap_servers=self._bootstrap_servers,
-    #             auto_offset_reset='latest',
-    #             group_id=f'test-group-{uuid.uuid4()}',
-    #             value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-    #             # Уменьшаем интервалы, чтобы быстрее реагировать на события
-    #             heartbeat_interval_ms=1000,
-    #             session_timeout_ms=6000
-    #         )
-    #
-    #         # Цикл ожидания назначения партиций (Assignment)
-    #         # Пока Kafka не назначит нам партицию, мы не "слушаем"
-    #         while self._running.is_set():
-    #             self._consumer.poll(timeout_ms=500)
-    #             if self._consumer.assignment():
-    #                 print(f"Connected to Kafka. Assignment: {self._consumer.assignment()}")
-    #                 break
-    #
-    #         # Теперь мы точно готовы получать сообщения
-    #         self._ready.set()
-    #
-    #         # Основной цикл чтения
-    #         while self._running.is_set():
-    #             messages = self._consumer.poll(timeout_ms=1000, max_records=10)
-    #             for topic_partition, records in messages.items():
-    #                 for record in records:
-    #                     print(f"Received: {record.value}")
-    #                     self._messages.put(record)
-    #
-    #     except Exception as e:
-    #         print(f"Error in consumers thread: {e}")
-    #     finally:
-    #         print("Exiting consume loop")
-
     def _consume(self):
         self._ready.set()
         print("Consumer started...")
@@ -113,7 +62,7 @@ class Consumer(Singleton):
                         for watcher in self._watchers[topic]:
                             print(f' {topic}: {record}')
                             try:
-                              watcher.handle_message(record)
+                                watcher.handle_message(record)
                             except Exception:
                                 print(f' Error while handling message: {record}, watcher {watcher.topic}')
                     time.sleep(0.1)
