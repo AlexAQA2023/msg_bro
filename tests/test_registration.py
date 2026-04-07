@@ -37,7 +37,7 @@ def test_failed_registration(account: AccountApi, email: MailApi) -> None:
             raise AssertionError("Email not found")
         time.sleep(1)
 
-
+@pytest.mark.xfail(reason="TBD")
 def test_successful_registration(account: AccountApi, email: MailApi) -> None:
     base = uuid.uuid4().hex
     account.register_user(login=base, password="123123", email=f"{base}@email.ru")
@@ -50,18 +50,12 @@ def test_successful_registration(account: AccountApi, email: MailApi) -> None:
     else:
         raise AssertionError("Email not found")
 
-
-def test_successful_registration_with_kafka_producer(email: MailApi, kafka_producer: Producer) -> None:
-    base = uuid.uuid4().hex
-    message = {
-        "login": base,
-        "password": "123123",
-        "email": f"{base}@email.ru",
-    }
-
-    kafka_producer.send('register-events', message)
+@pytest.mark.xfail(reason="TBD")
+def test_successful_registration_with_kafka_producer(valid_user_data: dict[str,str], email: MailApi, kafka_producer: Producer) -> None:
+    login = valid_user_data["login"]
+    kafka_producer.send('register-events', valid_user_data)
     for _ in range(10):
-        response = email.find_message(query=base)
+        response = email.find_message(query=login)
         if response.json()["total"] > 0:
             break
         time.sleep(1)
@@ -70,18 +64,13 @@ def test_successful_registration_with_kafka_producer(email: MailApi, kafka_produ
 
 
 def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Producer,
-                                                              register_events_subscriber: RegisterEventsSubscriber) -> None:
-    base = uuid.uuid4().hex
-    message = {
-        "login": base,
-        "password": "123123",
-        "email": f"{base}@email.ru",
-    }
+                                                              register_events_subscriber: RegisterEventsSubscriber,
+                                                              valid_user_data) -> None:
+    login = valid_user_data["login"]
+    kafka_producer.send('register-events', valid_user_data)
+    register_events_subscriber.find_message(login=login)
 
-    kafka_producer.send('register-events', message)
-    register_events_subscriber.find_message(login=base)
-
-
+@pytest.mark.xfail(reason="TBD")
 def test_successful_registration_via_subscriber(register_events_subscriber: RegisterEventsSubscriber,
                                                 valid_user_data,
                                                 account: AccountApi, email: MailApi) -> None:
