@@ -27,6 +27,26 @@ def invalid_user_data() -> dict[str, str]:
     }
 
 
+@pytest.fixture
+def invalid_data_for_unknown_type_error() -> dict[str, str]:
+    return {
+        "input_data": {
+            "login": "string",
+            "email": "string@gmail.com",
+            "password": "string"
+        },
+        "error_message": {
+            "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+            "title": "Validation failed",
+            "status": 400,
+            "errors": {
+                "Email": ["Taken"]
+            }
+        },
+        "error_type": "unknown"
+    }
+
+
 def test_failed_registration(account: AccountApi, email: MailApi) -> None:
     expected_mail = "string@mail.ru"
     account.register_user(login="string", password="string", email="string")
@@ -37,7 +57,8 @@ def test_failed_registration(account: AccountApi, email: MailApi) -> None:
             raise AssertionError("Email not found")
         time.sleep(1)
 
-@pytest.mark.xfail(reason="TBD")
+
+@pytest.mark.skip(reason="Channel pool is exhausted, only 16 connections allowed per pool', 'status': 500")
 def test_successful_registration(account: AccountApi, email: MailApi) -> None:
     base = uuid.uuid4().hex
     account.register_user(login=base, password="123123", email=f"{base}@email.ru")
@@ -50,8 +71,10 @@ def test_successful_registration(account: AccountApi, email: MailApi) -> None:
     else:
         raise AssertionError("Email not found")
 
-@pytest.mark.xfail(reason="TBD")
-def test_successful_registration_with_kafka_producer(valid_user_data: dict[str,str], email: MailApi, kafka_producer: Producer) -> None:
+
+@pytest.mark.skip(reason="Channel pool is exhausted, only 16 connections allowed per pool', 'status': 500")
+def test_successful_registration_with_kafka_producer(valid_user_data: dict[str, str], email: MailApi,
+                                                     kafka_producer: Producer) -> None:
     login = valid_user_data["login"]
     kafka_producer.send('register-events', valid_user_data)
     for _ in range(10):
@@ -70,7 +93,8 @@ def test_successful_registration_with_kafka_producer_consumer(kafka_producer: Pr
     kafka_producer.send('register-events', valid_user_data)
     register_events_subscriber.find_message(login=login)
 
-@pytest.mark.xfail(reason="TBD")
+
+@pytest.mark.skip(reason="Channel pool is exhausted, only 16 connections allowed per pool', 'status': 500")
 def test_successful_registration_via_subscriber(register_events_subscriber: RegisterEventsSubscriber,
                                                 valid_user_data,
                                                 account: AccountApi, email: MailApi) -> None:
@@ -98,33 +122,17 @@ def test_negative_registration_with_validation_type_error(register_events_subscr
 
 
 def test_negative_registration_with_unknown_type_error(
+
+        invalid_data_for_unknown_type_error,
         kafka_producer: Producer,
-        valid_user_data,
         register_events_errors: RegisterEventsErrorsSubscriber,
         register_events_subscriber: RegisterEventsSubscriber,
 ) -> None:
-    login = valid_user_data["login"]
-
-    message = {
-        "input_data": {
-            "login": login,
-            "email": f"{login}@gmail.com",
-            "password": "string"
-        },
-        "error_message": {
-            "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-            "title": "Validation failed",
-            "status": 400,
-            "errors": {
-                "Email": ["Taken"]
-            }
-        },
-        "error_type": "unknown"
-    }
+    message = invalid_data_for_unknown_type_error
+    login = message['input_data']["login"]
 
     kafka_producer.send('register-events-errors', message)
-    print(f"DEBUG: Unknown error is pushed for login: {login}")
+    print(f"DEBUG: Unknown error is pushed for login {login}")
 
     register_events_errors.find_error_message(login=login, error_type="unknown")
     register_events_errors.find_error_message(login=login, error_type="validation")
-
