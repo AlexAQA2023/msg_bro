@@ -1,5 +1,8 @@
+import json
 import time
 import uuid
+
+import pika
 import pytest
 from framework.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from framework.helpers.kafka.consumers.register_events_errors import RegisterEventsErrorsSubscriber
@@ -136,3 +139,34 @@ def test_negative_registration_with_unknown_type_error(
 
     register_events_errors.find_error_message(login=login, error_type="unknown")
     register_events_errors.find_error_message(login=login, error_type="validation")
+
+
+def test_rmq():
+    connection = pika.BlockingConnection(pika.URLParameters('amqp://guest:guest@185.185.143.231:5672'))
+    channel = connection.channel()
+    address = f'{uuid.uuid4().hex}@mail.ru'
+    message = {
+        "address": address,
+        "subject": "Test message",
+        "body": "Test message",
+    }
+    message = json.dumps(message).encode("utf-8")
+    try:
+        exchange = channel.exchange_declare(
+            exchange='dm.mail.sending', exchange_type='topic', durable=True
+
+        )
+        properties = pika.BasicProperties(
+            content_type='application/json',
+            correlation_id=uuid.uuid4().hex,
+        )
+        channel.basic_publish(
+            exchange='dm.mail.sending',
+            routing_key="",
+            body=message,
+            properties = properties,
+
+        )
+    finally:
+        channel.close()
+        connection.close()
