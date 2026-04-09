@@ -13,7 +13,7 @@ from framework.internal.singleton import Singleton
 class Consumer(Singleton):
     _started = False
 
-    def __init__(self, subscribers: list[Subscriber], consumer_group: str = f'python_art_group_{uuid.uuid4().hex[:6]}',
+    def __init__(self, subscribers: list[Subscriber], consumer_group: str = 'python_art',
                  bootstrap_servers=['185.185.143.231:9092']):
         self._bootstrap_servers = bootstrap_servers
         self._subscribers = subscribers

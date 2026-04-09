@@ -142,7 +142,8 @@ def test_negative_registration_with_unknown_type_error(
 
 
 def test_rmq(rmq_publisher: RmqPublisher, email: MailApi) -> None:
-    address = f'{uuid.uuid4().hex}@mail.ru'
+    address = f'{uuid.uuid4().hex}@tut.by'
+    print(f' my new created address is {address}')
     message = {
         "address": address,
         "subject": "Published message",
@@ -150,3 +151,11 @@ def test_rmq(rmq_publisher: RmqPublisher, email: MailApi) -> None:
     }
     rmq_publisher.publish("dm.mail.sending", message, "")
     email.find_message(query=address)
+
+    for _ in range(10):
+        response = email.find_message(query=address)
+        if response.json()["total"] > 0:
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError("Email not found")
