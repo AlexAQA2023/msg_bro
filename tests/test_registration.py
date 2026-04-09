@@ -141,11 +141,12 @@ def test_negative_registration_with_unknown_type_error(
     register_events_errors.find_error_message(login=login, error_type="validation")
 
 
-def test_rmq(rmq_publisher: RmqPublisher) -> None:
+def test_rmq(rmq_publisher: RmqPublisher, email: MailApi) -> None:
     address = f'{uuid.uuid4().hex}@mail.ru'
     message = {
         "address": address,
         "subject": "Published message",
         "body": "Published message",
     }
-    rmq_publisher.publish("dm.mail.sending",message,"")
+    rmq_publisher.publish("dm.mail.sending", message, "")
+    email.find_message(query=address)
