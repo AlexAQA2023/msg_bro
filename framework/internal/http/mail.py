@@ -1,4 +1,6 @@
+import json
 from operator import contains
+from urllib.parse import urlparse
 
 import httpx
 
@@ -17,6 +19,28 @@ class MailApi:
             "kind": "containing",
             "start": 0, }
 
-        response =  self._client.get("/mail/mail/search", params=params)
+        response = self._client.get("/mail/mail/search", params=params)
         print(response.content)
         return response
+
+    def search_messages(self, limit: int = 50, kind: str = "containing", start: int = 0) -> dict:
+
+        params = {
+            "limit": limit,
+            "kind": kind,
+            "start": start
+        }
+        response = self._client.get("/mail/mail/search", params=params)
+        response.raise_for_status()
+        return response.json()
+
+    def find_message_by_text(self, search_text: str, limit: int = 50, kind: str = "containing",
+                             start: int = 0) -> dict | None:
+
+        data = self.search_messages(limit, kind, start)
+        items = data.get("items", [])
+        for message in items:
+            body = message.get("Content", {}).get("Body", "")
+            if search_text in body:
+                return message
+        return None
