@@ -5,6 +5,7 @@ import pika
 import pytest
 from framework.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from framework.helpers.kafka.consumers.register_events_errors import RegisterEventsErrorsSubscriber
+from framework.helpers.rmq.dm_mail_sending import DmMailSending
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
 from framework.internal.kafka.producer import Producer
@@ -165,6 +166,6 @@ def test_rmq(rmq_publisher: RmqPublisher, email: MailApi) -> None:
         raise AssertionError("Email not found")
 
 def test_rmq_subscriber():
-    with Consumer() as consumer:
+    with DmMailSending() as consumer:
         message = consumer.get_message()
         print(f' my new created message is {message}')
