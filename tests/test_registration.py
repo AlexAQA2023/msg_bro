@@ -8,6 +8,7 @@ from framework.helpers.kafka.consumers.register_events_errors import RegisterEve
 from framework.internal.http.account import AccountApi
 from framework.internal.http.mail import MailApi
 from framework.internal.kafka.producer import Producer
+from framework.internal.rmq.consumer_rmq import Consumer
 from framework.internal.rmq.publisher_rmq import RmqPublisher
 
 
@@ -159,3 +160,8 @@ def test_rmq(rmq_publisher: RmqPublisher, email: MailApi) -> None:
         time.sleep(1)
     else:
         raise AssertionError("Email not found")
+
+def test_rmq_subscriber():
+    with Consumer() as consumer:
+        message = consumer.get_message()
+        print(f' my new created message is {message}')

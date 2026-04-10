@@ -1,47 +1,31 @@
 import json
+import queue
 import threading
 import time
-import uuid
-from collections import defaultdict
-
-from kafka import KafkaConsumer
-
-from framework.internal.kafka.subscriber import Subscriber
+import pika
 from framework.internal.singleton import Singleton
 
 
 class Consumer(Singleton):
     _started = False
 
-    def __init__(self, subscribers: list[Subscriber], consumer_group: str = 'python_art',
-                 bootstrap_servers=['185.185.143.231:9092']):
-        self._bootstrap_servers = bootstrap_servers
-        self._subscribers = subscribers
-        self.consumer_group = consumer_group
-        self._consumer: KafkaConsumer | None = None
+    def __init__(self, url='amqp://guest:guest@185.185.143.231:5672'):
+        self._url = url
+        self._connection = pika.BlockingConnection(pika.URLParameters(self._url))
+        self._channel = self._connection.channel()
         self._running = threading.Event()
         self._ready = threading.Event()
         self._thread: threading.Thread | None = None
-        self._watchers: dict[str, list[Subscriber]] = defaultdict(list)
+        self._messages: queue.Queue = queue.Queue()
+        self._queue_name: str = ""
 
-    def register(self):
-        if self._subscribers is None:
-            raise AssertionError("Subscriber is not initialized")
-        if self._started:
-            raise AssertionError("Consumer already started")
-        for sub in self._subscribers:
-            self._watchers[sub.topic].append(sub)
-
+    # Теперь у start есть отступ, он внутри класса
     def start(self):
-        self._consumer = KafkaConsumer(
-            *self._watchers.keys(),
-            bootstrap_servers=self._bootstrap_servers,
-            auto_offset_reset='latest',
-            group_id=self.consumer_group,
-            value_deserializer=lambda x: json.loads(x.decode('utf-8')),
+        result = self._channel.queue_declare(queue='', exclusive=True, auto_delete=True, durable=True)
+        self._queue_name = result.method.queue
+        print(f"Declare queue with name {self._queue_name}")
 
-        )
-        self._consumer.poll(timeout_ms=100)
+        self._channel.queue_bind(queue=self._queue_name, exchange='dm.mail.sending', routing_key='#')
         self._running.set()
         self._ready.clear()
         self._thread = threading.Thread(target=self._consume, daemon=True)
@@ -51,16 +35,36 @@ class Consumer(Singleton):
             raise RuntimeError("Consumer is not ready yet")
         self._started = True
 
+    def get_message(self, timeout: float = 10):
+        try:
+            return self._messages.get(timeout=timeout)
+        except queue.Empty:
+            raise AssertionError(f"No messages from topic: {self._queue_name}, within timeout: {timeout}")
+
     def _consume(self):
+        print("Consumer RMQ started...")
+
+        def on_message_callback(ch, method, properties, body):
+            try:
+                body_str = body.decode('utf-8')
+                try:
+                    data = json.loads(body_str)
+                except json.decoder.JSONDecodeError:
+                    data = body_str
+                self._messages.put(data)
+                print("Message received", data)
+            except Exception as e:
+                print(f'Error while processing rmq {e}')
+
+        self._channel.basic_consume(self._queue_name, on_message_callback)
+
+        # Устанавливаем готовность ПОСЛЕ того, как вызвали basic_consume
         self._ready.set()
-        print("Consumer started...")
+
         try:
             while self._running.is_set():
-
-
-                if not messages:
-                    time.sleep(0.1)
-
+                self._connection.process_data_events(time_limit=0.1)
+                time.sleep(0.01)
         except Exception as e:
             print(f"Error: {e}")
 
@@ -70,22 +74,26 @@ class Consumer(Singleton):
             self._thread.join(timeout=2)
             if self._thread.is_alive():
                 print("Thread is still alive")
-        if self._consumer:
+        if self._channel:
             try:
-                self._consumer.close(timeout_ms=2000)
-                print("Stop consuming")
+                self._channel.close()
+                print("Stop channel")
             except Exception as e:
                 print(f"Error while closing consumers: {e}")
-        del self._consumer
-        self._watchers.clear()
-        self._subscribers.clear()
+        if self._connection:
+            try:
+                self._connection.close()
+                print("Close connection")
+            except Exception as e:
+                print(f"Error while closing consumers: {e}")
+
         self._started = False
         print("Consumer stopped")
 
     def __enter__(self):
-        self.register()
         self.start()
         return self
+
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
