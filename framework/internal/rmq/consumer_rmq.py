@@ -11,7 +11,12 @@ class Consumer(Singleton):
 
     def __init__(self, url='amqp://guest:guest@185.185.143.231:5672'):
         self._url = url
-        self._connection = pika.BlockingConnection(pika.URLParameters(self._url))
+        params = pika.URLParameters(self._url)
+        params.heartbeat = 600
+        params.blocked_connection_timeout = 300
+
+        #self._connection = pika.BlockingConnection(pika.URLParameters(self._url))
+        self._connection = pika.BlockingConnection(params)
         self._channel = self._connection.channel()
         self._running = threading.Event()
         self._ready = threading.Event()
@@ -28,7 +33,7 @@ class Consumer(Singleton):
         raise NotImplementedError("Set routing_key")
 
     def _start(self):
-        result = self._channel.queue_declare(queue='', exclusive=True, auto_delete=True, durable=True)
+        result = self._channel.queue_declare(queue='', exclusive=False, auto_delete=True, durable=True)
         self._queue_name = result.method.queue
         print(f"Declare queue with name {self._queue_name}")
 
