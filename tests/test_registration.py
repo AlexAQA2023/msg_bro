@@ -141,6 +141,9 @@ def test_negative_registration_with_unknown_type_error(
     register_events_errors.find_error_message(login=login, error_type="unknown")
     register_events_errors.find_error_message(login=login, error_type="validation")
 
+@pytest.mark.parametrize("i", range(10))
+def test_send_registration(i, account: AccountApi, valid_user_data) -> None:
+    account.register_user(**valid_user_data)
 
 def test_rmq(rmq_publisher: RmqPublisher, email: MailApi) -> None:
     address = f'{uuid.uuid4().hex}@tut.by'
