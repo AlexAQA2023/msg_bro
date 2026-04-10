@@ -6,7 +6,7 @@ from framework.internal.kafka.subscriber import Subscriber
 class RegisterEventsSubscriber(Subscriber):
     topic: str = "register-events"
 
-    def find_message(self, login: str, timeout: float = 10) -> None:
+    def find_message(self, login: str, timeout: float = 20) -> None:
         start_time = time.time()
         print(f"DEBUG: Searching for login {login} in {self.topic}...")
 

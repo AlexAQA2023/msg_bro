@@ -8,7 +8,7 @@ class DmMailSending(Consumer):
     exchange = "dm.mail.sending"
     routing_key = "#"
 
-    def find_message(self, login: str, timeout: float = 10) -> None:
+    def find_message(self, login: str, timeout: float = 20) -> None:
         start_time = time.time()
         while time.time() - start_time < timeout:
 

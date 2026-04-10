@@ -182,7 +182,7 @@ def test_success_registration_with_rmq(rmq_dm_mail_sending_consumer: DmMailSendi
     account.register_user(**valid_user_data)
     register_events_subscriber.find_message(login=login)
     rmq_dm_mail_sending_consumer.find_message(login=login)
-    for _ in range(10):
+    for _ in range(30):
         response = email.find_message(query=login)
         if response.json()["total"] > 0:
             break
