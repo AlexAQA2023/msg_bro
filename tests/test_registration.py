@@ -142,9 +142,11 @@ def test_negative_registration_with_unknown_type_error(
     register_events_errors.find_error_message(login=login, error_type="unknown")
     register_events_errors.find_error_message(login=login, error_type="validation")
 
+
 @pytest.mark.parametrize("i", range(10))
 def test_send_registration(i, account: AccountApi, valid_user_data) -> None:
     account.register_user(**valid_user_data)
+
 
 def test_rmq(rmq_publisher: RmqPublisher, email: MailApi) -> None:
     address = f'{uuid.uuid4().hex}@tut.by'
@@ -165,7 +167,25 @@ def test_rmq(rmq_publisher: RmqPublisher, email: MailApi) -> None:
     else:
         raise AssertionError("Email not found")
 
+
 def test_rmq_subscriber():
     with DmMailSending() as consumer:
         message = consumer.get_message()
         print(f' my new created message is {message}')
+
+
+def test_success_registration_with_rmq(rmq_dm_mail_sending_consumer: DmMailSending,
+                                       register_events_subscriber: RegisterEventsSubscriber,
+                                       account: AccountApi, email: MailApi,
+                                       valid_user_data: dict[str, str]) -> None:
+    login = valid_user_data["login"]
+    account.register_user(**valid_user_data)
+    register_events_subscriber.find_message(login=login)
+    rmq_dm_mail_sending_consumer.find_message(login=login)
+    for _ in range(10):
+        response = email.find_message(query=login)
+        if response.json()["total"] > 0:
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError("Email not found")
