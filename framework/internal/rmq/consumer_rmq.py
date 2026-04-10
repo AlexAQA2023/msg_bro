@@ -2,6 +2,8 @@ import json
 import queue
 import threading
 import time
+import uuid
+
 import pika
 from framework.internal.singleton import Singleton
 
@@ -14,15 +16,13 @@ class Consumer(Singleton):
         params = pika.URLParameters(self._url)
         params.heartbeat = 600
         params.blocked_connection_timeout = 300
-
-        #self._connection = pika.BlockingConnection(pika.URLParameters(self._url))
-        self._connection = pika.BlockingConnection(params)
+        self._connection = pika.BlockingConnection(pika.URLParameters(self._url))
         self._channel = self._connection.channel()
         self._running = threading.Event()
         self._ready = threading.Event()
         self._thread: threading.Thread | None = None
         self._messages: queue.Queue = queue.Queue()
-        self._queue_name: str = ""
+        self._queue_name: str = uuid.uuid1().hex
 
     @property
     def exchange(self):
@@ -33,7 +33,7 @@ class Consumer(Singleton):
         raise NotImplementedError("Set routing_key")
 
     def _start(self):
-        result = self._channel.queue_declare(queue='', exclusive=False, auto_delete=True, durable=True)
+        result = self._channel.queue_declare(queue='', exclusive=True, auto_delete=True, durable=True)
         self._queue_name = result.method.queue
         print(f"Declare queue with name {self._queue_name}")
 
